@@ -6,6 +6,7 @@ interface ClientStringsPerLanguage {
     alpha: string,
     beta: string,
     production: string,
+    staging: string,
 
     userId: string;
 
@@ -24,6 +25,7 @@ interface ClientStringsPerLanguage {
 
     ok: string;
     logout: string;
+    logoutFromGraph: string;
     cancel: string;
     save: string;
     moreInfo: string;

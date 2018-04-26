@@ -66,10 +66,17 @@
         {{else}}
         {{!-- It appears that doing document.body.onload from the runner can sometimes be --}}
         {{!-- unreliable and fail to fire. So, do a safer (albeit polluting) approach --}}
-        window.parent.scriptRunnerBeginInit();
+        window.parent.scriptRunnerBeginInit(window, {
+            scriptReferences /*only used for maker mode*/: [
+{{#each snippet.scriptReferences}}
+                "{{{this}}}",
+{{/each}}
+                null
+            ]
+        });
 
         {{/if}}
-        {{#if snippet.officeJS}}
+        {{#if shouldPutSnippetIntoOfficeInitialize}}
         Office.initialize = function() {
             {{{indent snippet.script 3}}}
         };
@@ -79,7 +86,7 @@
 
         {{#if isExternalExport}}
         {{else}}
-        window.parent.scriptRunnerEndInit();
+        window.parent.scriptRunnerEndInit(window, '{{{snippet.id}}}');
         {{/if}}
     </script>
 </body>

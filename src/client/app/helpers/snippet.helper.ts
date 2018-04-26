@@ -1,7 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////////
-/// NOTE: A portion (everything except "getSnippetDefaults") is also used in the ///
-///       office-js-snippets project.  Please be sure that any changes that you  ///
-///       make here are also copied to there. See "config/snippet.helpers.ts"    ///
+/// NOTE: A portion (everything except "getSnippetDefaults" and "isMakerScript") ///
+///       is also used in the office-js-snippets project.                        ///
+///       Please be sure that any changes that you make here                     ///
+///       are also copied to there. See "config/snippet.helpers.ts"              ///
 ///       in https://github.com/OfficeDev/office-js-snippets                     ///
 ///                                                                              ///
 ///       That same shared portion is also used in the "server" portion of this  ///
@@ -39,6 +40,8 @@ const snippetFields: { [key: string]: SnippetFieldType } = {
     origin: SnippetFieldType.TRANSIENT,
     created_at: SnippetFieldType.INTERNAL,
     modified_at: SnippetFieldType.INTERNAL,
+
+    perf_info: SnippetFieldType.INTERNAL,
 
     /* ISnippet */
     script: SnippetFieldType.PUBLIC,
@@ -78,13 +81,13 @@ export function getSnippetDefaults(): ISnippet {
         gist: '',
         name: Strings().defaultSnippetTitle, // UI unknown (TODO: clarify what this comment meant)
         description: '',
-        // author: export-only, always want to generate on the fly, so skip altogether
+        // [author]: export-only, always want to generate on the fly, so skip altogether
         host: environment.current.host,
-        // api_set: export-only, always want to generate on the fly, so skip altogether
+        // [api_set]: export-only, always want to generate on the fly, so skip altogether
         platform: environment.current.platform,
         created_at: Date.now(),
         modified_at: Date.now(),
-
+        // [perfInfo]: explicitly not setting perf info because it is optional
         script: { content: '', language: 'typescript' },
         template: { content: '', language: 'html' },
         style: { content: '', language: 'css' },
@@ -96,6 +99,10 @@ export function getSnippetDefaults(): ISnippet {
     }
 
     return defaults;
+}
+
+export function isMakerScript(script: IContentLanguagePair) {
+    return script.content.indexOf('Experimental.ExcelMaker') >= 0;
 }
 
 function scrubCarriageReturns(snippet: ISnippet) {

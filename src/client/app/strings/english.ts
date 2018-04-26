@@ -23,6 +23,7 @@ export function getEnglishStrings(): ClientStringsPerLanguage {
         alpha: 'Alpha',
         beta: 'Beta',
         production: 'Production',
+        staging: 'Staging',
 
         userId: 'User ID',
 
@@ -40,6 +41,7 @@ export function getEnglishStrings(): ClientStringsPerLanguage {
 
         ok: 'OK',
         logout: 'Sign out',
+        logoutFromGraph: 'Sign out from Microsoft Graph',
         cancel: 'Cancel',
         save: 'Save',
         moreInfo: 'More info',

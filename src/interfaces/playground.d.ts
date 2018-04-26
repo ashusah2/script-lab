@@ -30,6 +30,18 @@ interface IContentLanguagePair {
     language: string;
 }
 
+// Note, this interface is copied in several places.  Search for it.
+interface PerfInfoItem {
+    line_no: number;
+    frequency: number;
+    duration: number;
+};
+
+interface IPerformanceInformation {
+    data: PerfInfoItem[];
+    timestamp: number;
+}
+
 interface ISnippet extends ITemplate {
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE: if you add or remove any top-level fields from this list, be sure
@@ -39,8 +51,9 @@ interface ISnippet extends ITemplate {
     script?: IContentLanguagePair;
     template?: IContentLanguagePair;
     style?: IContentLanguagePair;
-    customFunctions?: IContentLanguagePair
+    customFunctions?: IContentLanguagePair;
     libraries?: string;
+    perfInfo?: IPerformanceInformation;
 }
 
 interface ILibraryDefinition {
@@ -53,6 +66,8 @@ interface ILibraryDefinition {
 /** The request body passed to the runner during a POST */
 interface IRunnerState {
     snippet: ISnippet;
+
+    isInsideOfficeApp: boolean;
     displayLanguage: string;
 
     /** URL to return to in case of the gallery (or something else custom).
@@ -61,28 +76,63 @@ interface IRunnerState {
     returnUrl?: string;
 }
 
-interface ICustomFunctionsRelevantData {
-    id: string;
+// Note: I've duplicated these interfaces here from server/custom-functions/interfaces.ts
+// because when trying to import, it broke everything and none of these interfaces could be found
+interface ICFFunctionMetadata {
     name: string;
-    customFunctions: {
-        content: string;
-        language: string;
-    }
-    libraries: string;
+    description?: string;
+    parameters: ICFVisualParameterMetadata[];
+    result: ICFFunctionResultMetadata;
+    options: ICustomFunctionOptions;
+    error?: string;
+};
+
+interface ICFParameterMetadata {
+    name: string;
+    description?: string;
+    type: CustomFunctionsSupportedTypes;
+    dimensionality: CustomFunctionsDimensionality;
+    error?: string;
+};
+
+
+/** The interface used by Excel to register custom functions (workbook.registerCustomFunctions(...))  */
+interface ICustomFunctionsRegistrationApiMetadata {
+    functions: ICFFunctionMetadata[];
 }
 
-/** Request body passed to the custom functions compile route in a POST */
-interface ICompileCustomFunctionsState {
-    snippets: Array<ICustomFunctionsRelevantData>;
-    mode: 'register' | 'run';
-    heartbeatParams: ICustomFunctionsHeartbeatParams;
-    
-    displayLanguage: string;
+interface ICustomFunctionsSnippetRegistrationData {
+    namespace: string;
+    functions: ICFFunctionMetadata[];
+}
+
+interface ICustomFunctionsRegistrationRelevantData {
+    name: string; //of snippet
+    data: ICustomFunctionsSnippetRegistrationData;
 }
 
 interface ICustomFunctionsHeartbeatParams {
     clientTimestamp: number;
     showDebugLog: boolean;
+}
+
+interface ICustomFunctionsRunnerRelevantData {
+    name: string;
+    id: string;
+    libraries: string,
+    script: IContentLanguagePair,
+    metadata: ICustomFunctionsSnippetRegistrationData;
+}
+
+interface IRegisterCustomFunctionsPostData {
+    snippets: ISnippet[];
+    displayLanguage: string;
+}
+
+interface IRunnerCustomFunctionsPostData {
+    snippets: ICustomFunctionsRunnerRelevantData[];
+    displayLanguage: string;
+    heartbeatParams: ICustomFunctionsHeartbeatParams;
 }
 
 interface IExportState {
@@ -131,8 +181,11 @@ interface ICompiledPlaygroundInfo {
         local: ILocalHostEnvironmentConfig,
         edge: IEnvironmentConfig,
         insiders: IEnvironmentConfig,
+        staging: IEnvironmentConfig,
         production: IEnvironmentConfig
     };
+
+    /** NOTE: when adding local storage keys here, also add them to "const localStorageKeys = {...}" in "env.config.js" */
     localStorageKeys: {
         /** A dummy key used simply for getting localStorage to refresh (see https://stackoverflow.com/a/40770399) */
         dummyUnusedKey: string;
@@ -140,7 +193,7 @@ interface ICompiledPlaygroundInfo {
         log: string;
 
         hostSnippets_parameterized: string;
-        settings: string;        
+        settings: string;
         originEnvironmentUrl: string;
         redirectEnvironmentUrl: string;
         wacUrl: string;
@@ -163,9 +216,8 @@ interface ICompiledPlaygroundInfo {
          * the custom functions heartbeat was aware of */
         customFunctionsCurrentlyRunningTimestamp: string;
 
-
-        /** Last seen timestamp at which the log dialog reported itself as alive */
-        logLastHeartbeatTimestamp: string;
+        /** Last time that perf numbers were generated (so that the editor can know to possible refresh) */
+        lastPerfNumbersTimestamp: string;
     };
     sessionStorageKeys: {
         environmentCache: string;
@@ -199,7 +251,7 @@ interface ICurrentPlaygroundInfo {
 
     supportsCustomFunctions: boolean;
     customFunctionsShowDebugLog: boolean;
-    
+
     isAddinCommands: boolean;
     isTryIt: boolean;
     wacUrl: string;
@@ -214,14 +266,15 @@ interface IBuildInfo {
 }
 
 interface IEnvironmentConfig {
-    name: 'LOCAL' | 'EDGE' | 'INSIDERS' | 'PRODUCTION',
+    name: 'LOCAL' | 'EDGE' | 'INSIDERS' | 'STAGING' | 'PRODUCTION',
     clientId: string
     instrumentationKey: string,
     editorUrl: string,
     tokenUrl: string,
     runnerUrl: string,
     feedbackUrl: string,
-    samplesUrl: string
+    samplesUrl: string,
+    thirdPartyAADAppClientId: string,
 }
 
 interface ILocalHostEnvironmentConfig extends IEnvironmentConfig {
@@ -257,6 +310,12 @@ interface AuthRequestParamData {
     resource: string;
     client_id: string;
     is_office_host: boolean;
+    snippet_id: string;
+}
+
+interface DefaultAuthRequestParamData {
+    snippet_id: string;
+    auth_url: string;
 }
 
 interface LogData {

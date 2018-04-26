@@ -24,13 +24,16 @@
         "typeRoots": [
             "node_modules/@types",
             "src/interfaces"
-        ]
+        ],
+        "skipLibCheck": true,
+        "noStrictGenericChecks": true
     },
     "exclude": [
         "node_modules",
         "compiled",
         "dist",
-        "src/runtime-helpers"
+        "src/runtime-helpers",
+        "src/__tests__"
     ],
     "awesomeTypescriptLoaderOptions": {
         "useWebpackText": true,

@@ -13,7 +13,10 @@ const { config, localStorageKeys, sessionStorageKeys } = PLAYGROUND;
             <div class="about">
                 <div class="about__details">
                     <div class="about__primary-text ms-font-xxl">{{config?.build?.name}}</div>
-                    <div class="profile__tertiary-text ms-font-m">{{strings.userId}}: ${storage.user}</div>
+                    <div class="profile__tertiary-text ms-font-m" style="margin-bottom: 20px;">{{strings.userId}}: ${storage.user}</div>
+                    <button class="ms-Dialog-action ms-Button" style="margin-bottom: 20px;" (click)="logoutSnippets()">
+                        <span class="ms-Button-label">{{strings.logoutFromGraph}}</span>
+                    </button>
                     <div class="about__secondary-text ms-font-l">Version: {{config?.build?.version}}
                         <br/><span class="ms-font-m">(Deployed {{config?.build?.humanReadableTimestamp}})</span>
                     </div>
@@ -75,11 +78,7 @@ export class About implements AfterViewInit {
     currentChosenLanguage = '';
     originalLanguage = '';
 
-    configs = [
-        { name: this.strings.production, value: 'production' },
-        { name: this.strings.beta, value: 'insiders' },
-        { name: this.strings.alpha, value: 'edge' },
-    ];
+    configs: {name: string, value: string }[] = [];
     selectedConfig = '';
 
     showExperimentationFlags = false;
@@ -87,20 +86,33 @@ export class About implements AfterViewInit {
 
     constructor(
         private _effects: UIEffects
-    ) { }
+    ) {
+    }
 
     ngAfterViewInit() {
         this.availableLanguages = getAvailableLanguages();
         this.currentChosenLanguage = getDisplayLanguage();
         this.originalLanguage = this.currentChosenLanguage;
 
-        // User can only navigate to localhost if they've sideloaded local manifest
-        ensureFreshLocalStorage();
-        let showLocalConfig = (environment.current.config.name === config.local.name ||
+        const isLocalHost = (environment.current.config.name === config.local.name ||
             /localhost/.test(window.localStorage.getItem(localStorageKeys.originEnvironmentUrl)));
-        if (showLocalConfig) {
-            this.configs.push({ name: config.local.editorUrl, value: 'local' });
-        }
+        const isBeta = environment.current.config.name === config.insiders.name;
+        const isProd = environment.current.config.name === config.production.name;
+
+        this.configs = [
+            { name: this.strings.production, value: config.production.name },
+
+            // To avoid clutter, only show staging site if you're not on prod or beta
+            (!(isProd || isBeta)) ? { name: this.strings.staging, value: config.staging.name } : null,
+
+            { name: this.strings.beta, value: config.insiders.name },
+            { name: this.strings.alpha, value: config.edge.name },
+
+            // User can only navigate to localhost if they've sideloaded local manifest
+            isLocalHost ? { name: config.local.editorUrl, value: config.local.name } : null
+        ].filter(item => item != null);
+
+        ensureFreshLocalStorage();
 
         this.selectedConfig = this.configs.find(c => c.value.toUpperCase() === environment.current.config.name).value;
 
@@ -148,6 +160,28 @@ export class About implements AfterViewInit {
         this.showChange.emit(false);
 
         await this._handleEnvironmentSwitching();
+    }
+
+    logoutSnippets() {
+        window.open(
+            _generateAuthUrl({ client_id: environment.current.config.thirdPartyAADAppClientId, resource: 'graph' }),
+            '_blank',
+            'width=1024,height=768'
+        );
+
+        // This function should remain roughly in sync with "auth-helpers.ts"
+        function _generateAuthUrl(params: {
+            resource: string;
+            client_id: string;
+        }): string {
+            const queryParams = [
+                `auth_action=logout`,
+                `client_id=${encodeURIComponent(params.client_id)}`,
+                `resource=${params.resource}`
+            ].join('&');
+
+            return environment.current.config.runnerUrl + '/snippet/auth?' + queryParams;
+        }
     }
 
     onExperimentationFlagsChange() {
